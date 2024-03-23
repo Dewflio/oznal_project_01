@@ -1,0 +1,33 @@
+# OZNAL - Project 01 - Classification and Regression Hypothesis
+
+## FIIT STU - Bratislava
+
+## March 2024
+
+## Authors
+
+-   Leonard Puškáč
+-   Ema Richnáková
+
+## Dataset
+
+In this mini-project analyse data from <https://www.kaggle.com/datasets/julianoorlandi/spotify-top-songs-and-audio-features?resource=download>
+
+The dataset contains information about various "top" songs and their stats on Spotify. There are 6513 entries each containing FILL IN features, such as the name of the song, its id, features that can be used to classify the songs such as the key or the mode (Major/Minor), as well as numeric features that can be used for regression analysis - energy, danceability, speechiness (the amount of spoken word), liveness, loudness, tempo and many others.
+
+## Importing Libraries
+
+```{r}
+library(magrittr)
+library(tidyverse)
+```
+
+## Loading the Dataset
+
+```{r}
+data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
+```
+
+```{r}
+View(data)
+```
