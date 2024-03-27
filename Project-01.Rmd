@@ -11,9 +11,52 @@
 
 ## Dataset
 
-In this mini-project analyse data from <https://www.kaggle.com/datasets/julianoorlandi/spotify-top-songs-and-audio-features?resource=download>
+In this mini-project we will analyse data from <https://www.kaggle.com/datasets/julianoorlandi/spotify-top-songs-and-audio-features?resource=download>
 
 The dataset contains information about various "top" songs and their stats on Spotify. There are 6513 entries each containing FILL IN features, such as the name of the song, its id, features that can be used to classify the songs such as the key or the mode (Major/Minor), as well as numeric features that can be used for regression analysis - energy, danceability, speechiness (the amount of spoken word), liveness, loudness, tempo and many others.
+
+### Data Description
+
+| Column name | Description |
+| ----------- | ----------- |
+| id | The Spotify ID for the track. |
+| artist_names | The name of the artist. |
+| track_name | The name of the track. |
+| source | The name of the record label. |
+| key | The key the track is in. |
+| mode | Mode indicates the modality (major or minor) of a track, the type of scale from which its melodic content is derived. |
+| time_signature | An estimated time signature. The time signature (meter) is a notational convention to specify how many beats are in each bar (or measure). The time signature ranges from 3 to 7. |
+| danceability | Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. A value of 0.0 is least danceable and 1.0 is most danceable. |
+| energy | Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. For example, death metal has high energy, while a Bach prelude scores low on the scale. Perceptual features contributing to this attribute include dynamic range, perceived loudness, timbre, onset rate, and general entropy. |
+| speechiness | Speechiness detects the presence of spoken words in a track. The more exclusively speech-like the recording (e.g. talk show, audio book, poetry), the closer to 1.0 the attribute value. Values above 0.66 describe tracks that are probably made entirely of spoken words. Values between 0.33 and 0.66 describe tracks that may contain both music and speech, either in sections or layered, including such cases as rap music. Values below 0.33 most likely represent music and other non-speech-like tracks. |
+| acousticness | A confidence measure from 0.0 to 1.0 of whether the track is acoustic. 1.0 represents high confidence the track is acoustic. |
+| instrumentalness | Predicts whether a track contains no vocals. "Ooh" and "aah" sounds are treated as instrumental in this context. Rap or spoken word tracks are clearly "vocal". The closer the instrumentalness value is to 1.0, the greater likelihood the track contains no vocal content. Values above 0.5 are intended to represent instrumental tracks, but confidence is higher as the value approaches 1.0. |
+| liveness | Detects the presence of an audience in the recording. Higher liveness values represent an increased probability that the track was performed live. A value above 0.8 provides strong likelihood that the track is live. |
+| valence | A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry). |
+| loudness | The overall loudness of a track in decibels (dB). Loudness values are averaged across the entire track and are useful for comparing relative loudness of tracks. Loudness is the quality of a sound that is the primary psychological correlate of physical strength (amplitude). Values typically range between -60 and 0 db. |
+| tempo | The overall estimated tempo of a track in beats per minute (BPM). In musical terminology, tempo is the speed or pace of a given piece and derives directly from the average beat duration. |
+| duration_ms | The duration of the track in milliseconds. |
+| weeks_on_chart | Number of weeks the track was in the top 200 charts. |
+| streams | How many streams the track had during its period in the charts. |
+
+## Hypothesis
+
+### Regression
+
+*Songs with higher danceability tend to have more streams.*
+
+We hypothesize that there is a positive relationship between danceability, an audio feature, and the number of streams a song receives. Specifically, songs with higher danceability scores are expected to attract more listeners and therefore accumulate more streams.
+
+### Classification
+
+*Songs with higher valence, indicating a more positive mood, are more likely to stay longer in the top charts (measured in weeks).*
+
+We hypothesize that there is a correlation between the valence of a song, representing its emotional positivity, and its longevity in the top charts. Songs with higher valence scores are expected to resonate more positively with listeners, potentially leading to longer chart presence.
+
+Classification:
+
+    - 1 - happy (0.5 - 0.98)
+    - 0 - sad (0.03 - 0.49)
 
 ## Importing Libraries
 
