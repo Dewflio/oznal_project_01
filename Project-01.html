@@ -513,31 +513,77 @@ derives directly from the average beat duration.</td>
 </table>
 </div>
 </div>
-<div id="hypothesis" class="section level2">
-<h2>Hypothesis</h2>
-<div id="regression" class="section level3">
-<h3>Regression</h3>
-<p><em>Songs with higher danceability tend to have more
-streams.</em></p>
-<p>We hypothesize that there is a positive relationship between
-danceability, an audio feature, and the number of streams a song
-receives. Specifically, songs with higher danceability scores are
-expected to attract more listeners and therefore accumulate more
-streams.</p>
+<div id="models" class="section level2">
+<h2>Models</h2>
+<div id="regression-model" class="section level3">
+<h3>Regression model</h3>
+<div id="hypothesis-1" class="section level4">
+<h4>Hypothesis 1</h4>
+<p><em>Songs tend to have higher danceability scores when they exhibit
+higher levels of energy.</em></p>
+<p>We hypothesize that there is a positive relationship between a song’s
+energy level and its danceability score. In other words, songs that are
+more energetic are expected to be perceived as more danceable.</p>
 </div>
-<div id="classification" class="section level3">
-<h3>Classification</h3>
-<p><em>Songs with higher valence, indicating a more positive mood, are
-more likely to stay longer in the top charts (measured in
-weeks).</em></p>
-<p>We hypothesize that there is a correlation between the valence of a
-song, representing its emotional positivity, and its longevity in the
-top charts. Songs with higher valence scores are expected to resonate
-more positively with listeners, potentially leading to longer chart
-presence.</p>
-<p>Classification:</p>
-<pre><code>- 1 - happy (0.5 - 0.98)
-- 0 - sad (0.03 - 0.49)</code></pre>
+<div id="hypothesis-2" class="section level4">
+<h4>Hypothesis 2</h4>
+<p><em>Songs tend to be more danceable when they have a higher
+tempo.</em></p>
+<p>We hypothesize that there is a positive association between a song’s
+tempo and its danceability. Specifically, songs with a faster tempo are
+expected to be perceived as more danceable compared to songs with a
+slower tempo.</p>
+</div>
+<div id="hypothesis-3" class="section level4">
+<h4>Hypothesis 3</h4>
+<p><em>Songs tend to have higher danceability when they exhibit lower
+levels of speechiness.</em></p>
+<p>We hypothesize that there is a negative correlation between the
+speechiness of a song and its danceability. In other words, songs with
+fewer speech-like elements, such as lyrics or spoken words, are expected
+to be perceived as more danceable.</p>
+</div>
+</div>
+<div id="classification-model" class="section level3">
+<h3>Classification model</h3>
+<p>Classification - mode:</p>
+<ul>
+<li>1 - major</li>
+<li>0 - minor</li>
+</ul>
+<div id="hypothesis-1-1" class="section level4">
+<h4>Hypothesis 1</h4>
+<p><em>Songs classified as major mode are more likely to have higher
+danceability scores compared to songs classified as minor mode.</em></p>
+<p>We hypothesize that there is a difference in danceability between
+songs with major and minor modes. Specifically, songs classified as
+major mode are expected to exhibit higher danceability, possibly due to
+the association of major keys with more upbeat or energetic
+compositions.</p>
+</div>
+<div id="hypothesis-2-1" class="section level4">
+<h4>Hypothesis 2</h4>
+<p><em>Songs in the minor mode tend to have lower liveness
+scores.</em></p>
+<p>We hypothesize that there is a negative relationship between a song’s
+mode (minor) and its liveness score. In other words, songs characterized
+by the minor mode are expected to exhibit lower levels of liveness
+compared to songs in other modes.</p>
+</div>
+<div id="hypothesis-3-1" class="section level4">
+<h4>Hypothesis 3</h4>
+<p><em>Songs characterized by the major mode tend to have higher valence
+scores.</em></p>
+<p>We hypothesize that there is a positive correlation between a song’s
+mode (major) and its valence score. In other words, songs with a major
+mode are expected to be associated with more positive emotional content,
+resulting in higher valence scores.</p>
+</div>
+<div id="correlation" class="section level4">
+<h4>Correlation</h4>
+<p>There can be correlation between higher valence and higher
+danceability score.</p>
+</div>
 </div>
 </div>
 <div id="importing-libraries" class="section level2">

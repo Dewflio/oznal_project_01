@@ -39,24 +39,60 @@ The dataset contains information about various "top" songs and their stats on Sp
 | weeks_on_chart | Number of weeks the track was in the top 200 charts. |
 | streams | How many streams the track had during its period in the charts. |
 
-## Hypothesis
+## Models
 
-### Regression
+### Regression model
 
-*Songs with higher danceability tend to have more streams.*
+[comment]: <> (Leo)
 
-We hypothesize that there is a positive relationship between danceability, an audio feature, and the number of streams a song receives. Specifically, songs with higher danceability scores are expected to attract more listeners and therefore accumulate more streams.
+#### Hypothesis 1
 
-### Classification
+*Songs tend to have higher danceability scores when they exhibit higher levels of energy.*
 
-*Songs with higher valence, indicating a more positive mood, are more likely to stay longer in the top charts (measured in weeks).*
+We hypothesize that there is a positive relationship between a song's energy level and its danceability score. In other words, songs that are more energetic are expected to be perceived as more danceable.
 
-We hypothesize that there is a correlation between the valence of a song, representing its emotional positivity, and its longevity in the top charts. Songs with higher valence scores are expected to resonate more positively with listeners, potentially leading to longer chart presence.
+#### Hypothesis 2
 
-Classification:
+*Songs tend to be more danceable when they have a higher tempo.*
 
-    - 1 - happy (0.5 - 0.98)
-    - 0 - sad (0.03 - 0.49)
+We hypothesize that there is a positive association between a song's tempo and its danceability. Specifically, songs with a faster tempo are expected to be perceived as more danceable compared to songs with a slower tempo.
+
+#### Hypothesis 3
+
+*Songs tend to have higher danceability when they exhibit lower levels of speechiness.*
+
+We hypothesize that there is a negative correlation between the speechiness of a song and its danceability. In other words, songs with fewer speech-like elements, such as lyrics or spoken words, are expected to be perceived as more danceable.
+
+### Classification model
+
+[comment]: <> (Ema)
+
+Classification - mode:
+
+* 1 - major
+* 0 - minor
+
+#### Hypothesis 1
+
+*Songs classified as major mode are more likely to have higher danceability scores compared to songs classified as minor mode.*
+
+We hypothesize that there is a difference in danceability between songs with major and minor modes. Specifically, songs classified as major mode are expected to exhibit higher danceability, possibly due to the association of major keys with more upbeat or energetic compositions.
+
+#### Hypothesis 2
+
+*Songs in the minor mode tend to have lower liveness scores.*
+
+We hypothesize that there is a negative relationship between a song's mode (minor) and its liveness score. In other words, songs characterized by the minor mode are expected to exhibit lower levels of liveness compared to songs in other modes.
+
+#### Hypothesis 3
+
+*Songs characterized by the major mode tend to have higher valence scores.*
+
+We hypothesize that there is a positive correlation between a song's mode (major) and its valence score. In other words, songs with a major mode are expected to be associated with more positive emotional content, resulting in higher valence scores.
+
+#### Correlation
+
+There can be correlation between higher valence and higher danceability score.
 
 ## Importing Libraries
 
