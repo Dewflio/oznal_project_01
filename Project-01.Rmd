@@ -53,6 +53,7 @@ library(tidyverse)
 
 ```{r}
 data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
+
 ```
 
 ```{r}
@@ -114,23 +115,17 @@ Based on the results of our data exploration we've come up with several hypothes
 
 *Songs tend to have higher danceability scores when they exhibit higher levels of energy.*
 
-We hypothesize that there is a positive relationship between a song's energy level and its danceability score. In other words, songs that are more energetic are expected to be perceived as more danceable.
-
 #### Hypothesis 2
 
 *Songs tend to be more danceable when they have a higher tempo.*
-
-We hypothesize that there is a positive association between a song's tempo and its danceability. Specifically, songs with a faster tempo are expected to be perceived as more danceable compared to songs with a slower tempo.
 
 #### Hypothesis 3
 
 *Songs tend to have higher danceability when they exhibit lower levels of speechiness.*
 
-We hypothesize that there is a negative correlation between the speechiness of a song and its danceability. In other words, songs with fewer speech-like elements, such as lyrics or spoken words, are expected to be perceived as more danceable.
-
 ### Classification model
 
-Classification - mode:
+Classification - *mode*:
 
 -   1 - major
 -   0 - minor
@@ -139,20 +134,70 @@ Classification - mode:
 
 *Songs classified as major mode are more likely to have higher danceability scores compared to songs classified as minor mode.*
 
-We hypothesize that there is a difference in danceability between songs with major and minor modes. Specifically, songs classified as major mode are expected to exhibit higher danceability, possibly due to the association of major keys with more upbeat or energetic compositions.
-
 #### Hypothesis 2
 
 *Songs in the minor mode tend to have lower liveness scores.*
-
-We hypothesize that there is a negative relationship between a song's mode (minor) and its liveness score. In other words, songs characterized by the minor mode are expected to exhibit lower levels of liveness compared to songs in other modes.
 
 #### Hypothesis 3
 
 *Songs characterized by the major mode tend to have higher valence scores.*
 
-We hypothesize that there is a positive correlation between a song's mode (major) and its valence score. In other words, songs with a major mode are expected to be associated with more positive emotional content, resulting in higher valence scores.
+## Importing Libraries
 
-#### Correlation
+```{r}
+library(magrittr)
+library(tidyverse)
 
-There can be correlation between higher valence and higher danceability score.
+```
+
+## Loading the Dataset
+
+```{r}
+data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
+head(data)
+```
+
+## Data Exploration
+
+First we select the numeric features of the data set, so that we can perform correlation analysis later.
+
+```{r}
+numeric_columns <- names(data)[sapply(data, is.numeric)]
+numeric_columns
+```
+
+```{r}
+pair_plot_data <- data %>% select(numeric_columns)
+pairs(pair_plot_data)
+```
+
+```{r}
+numeric_correlation_matrix <- cor(pair_plot_data)
+print(numeric_correlation_matrix)
+heatmap(numeric_correlation_matrix, 
+        col = colorRampPalette(c("blue", "white", "red"))(100),
+        symm = TRUE)
+
+```
+
+### Interpreting the correlation matrix
+
+We have selected the numeric features of the data set to see which pairs of features are worth exploring in terms of forming a hypothesis when it comes to regression. From the heatmap (and the printed numeric values) representing the correlation of these sets of numbers, we can see that there are pairs of features that clearly correlate a lot more (positive correlation relationship) than others - for example the pairs:
+
+-   loudness - energy
+-   streams - weeks_on_chart
+
+These two pairs of features have the highest correlation coefficients among all the pairs. For our purposes we will probably be disregarding the streams an weeks_on_chart pair as forming a hypothesis about this pair is not as interesting (it seems rather clear that with more time on the chart the number of streams would increase - although it would be interesting to explore where we can expect a drop-off or what the out-liers of this trend are). We will therefore be focusing on the loudness and energy pair.
+
+As well as that, we can see that there are certain pairs of features that have a really high negative correlation relationship (a correlation coefficient close to -1, rather than 1), meaning that as the value of one variable increases the other one tends to decreases. These pairs are:
+
+-   acousticness - loudness
+-   acousticness - energy
+
+A high number close to either of the extremes (-1 and 1) means that there is a strong linear relationship between the variables (negative or positive) - it is therefore "safe" to make assumptions about these pairs.
+
+However, there are still some pairs of features that might be worth exploring further in spite of their unimpressive correlation coefficients. These are features that don't correlate as much as the previously mentioned pairs, but ones which correlate (positively or negatively) strongly enough to be worth a consideration:
+
+-   acousticness - danceability
+-   valence - energy
+-   valence - danceability
