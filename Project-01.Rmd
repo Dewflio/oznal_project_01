@@ -58,29 +58,25 @@ data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_t
 head(data)
 ```
 
-## Data Exploration
+## Data Exploration (for regression models... mostly)
 
-First we select the numeric features of the data set, so that we can perform correlation analysis later.
+First we select the numeric features of the data set, so that we can perform correlation analysis.
 
 ```{r}
 numeric_columns <- names(data)[sapply(data, is.numeric)]
 numeric_columns
+numeric_data <- data %>% select(numeric_columns)
 ```
 
 ```{r}
-pair_plot_data <- data %>% select(numeric_columns)
-pairs(pair_plot_data)
-```
-
-```{r}
-numeric_correlation_matrix <- cor(pair_plot_data)
-print(numeric_correlation_matrix)
+numeric_correlation_matrix <- cor(numeric_data)
 heatmap(numeric_correlation_matrix, 
         col = colorRampPalette(c("blue", "white", "red"))(100),
         symm = TRUE)
+numeric_correlation_matrix
 ```
 
-### Interpreting the correlation matrix
+## Interpreting the Correlation Matrix and Forming Hyptheses for the Regression Models
 
 We have selected the numeric features of the data set to see which pairs of features are worth exploring in terms of forming a hypothesis when it comes to regression. From the heatmap (and the printed numeric values) representing the correlation of these sets of numbers, we can see that there are pairs of features that clearly correlate a lot more (positive correlation relationship) than others - for example the pairs:
 
@@ -102,60 +98,116 @@ However, there are still some pairs of features that might be worth exploring fu
 -   valence - energy
 -   valence - danceability
 
-## Hypotheses
+### Forming the Hypotheses
 
-Based on the results of our data exploration we've come up with several hypotheses which we will test using classification and regression models. 
+We have identified the pairs of variables which have a high enough correlation relationship for them to be interesting to us.
 
-### Regression model
+acousticness strongly negatively correlates with loudness and energy, and somewhat strongly with danceability Furthermore, those three variables do not correlate much with each other (apart from the energy and loudness pair - but thats okay, we can experiment with it). This makes them ideal candidates for being the predictor variables for acousticness acousticness \~ danceability + energy + loudness
+
+The relationship between energy and loudness can also be explored further. We can see that energy also somewhat correlates with valence, and that valence and loudness do not correlate as much with each other. So we will be using this set of features for the second hypothesis. energy \~ loudness + valence
 
 #### Hypothesis 1
 
-*Songs tend to have higher danceability scores when they exhibit higher levels of energy.*
+Acousticness tends to decrease with higher danceability less significantly when energy and loudness are both high.
 
 #### Hypothesis 2
 
-*Songs tend to be more danceable when they have a higher tempo.*
+valence has less of an impact on energy then loudness.
 
-#### Hypothesis 3
+## Regression models
 
-*Songs tend to have higher danceability when they exhibit lower levels of speechiness.*
+First lets split the data set into training and testing subsets.
 
-## Classification model
+```{r}
+sample <- sample(c(TRUE, FALSE), nrow(data), replace = TRUE, prob = c(0.8, 0.2))
+train_data <- data[sample, ]
+test_data <- data[!sample, ]
+```
+
+Then we can start thinking about which models to use to test our hypothesis. For that we need to find out the distributions of our predicted variables.
+
+### 1st Model
+
+```{r}
+# Find out the distribution of the acousticness variable
+hist(data$acousticness, col="green")
+```
+
+We can see that the feature is not normally distributed, but that it resembles a Gamma distribution - negatively skewed. We can therefore use the general linear model, using the Gamma family. We also have to specify that link="log" for it to work with a negatively skewed distribution.
+
+```{r}
+model_h1 <- train_data %>% glm(formula = acousticness ~ danceability + loudness + energy, family=Gamma(link="log"))
+summary(model_h1)
+```
+
+```{r}
+par(mfrow = c(1,3)) # par() sets up a plotting grid: 1 row x 3 columns
+plot(model_h1, which = c(1,2,5))
+```
+
+# TODO - interpret the model and H1
+
+### 2nd Model
+
+```{r}
+hist(data$energy, col="green")
+```
+
+```{r}
+model_h2 <- train_data %>% glm(formula = energy ~ loudness + valence, family=Gamma(link="log"))
+summary(model_h2)
+```
+
+```{r}
+par(mfrow = c(1,3)) 
+plot(model_h2, which = c(1,2,5))
+```
+
+# TODO - interpret the model and H2
+
+## Classification models
 
 We are considering 3 columns, that we could classify as 1 and 0. And those are:
 
-- Key
-  + [1] A-C#/Db
-  + [0] D-G#/Ab
-  ```{r}
-  table(data$key)
-  ```
-- Mode
-  + [1] Major
-  + [0] Minor
-  ```{r}
-  table(data$mode)
-  ```
-- Time Signature
-  + [1] 4 beats
-  + [0] *other* 
-  ```{r}
-  table(data$time_signature)
-  ```
+-   Key
+
+    -   [1] A-C#/Db
+    -   [0] D-G#/Ab
+
+    ```{r}
+    table(data$key)
+    ```
+
+-   Mode
+
+    -   [1] Major
+    -   [0] Minor
+
+    ```{r}
+    table(data$mode)
+    ```
+
+-   Time Signature
+
+    -   [1] 4 beats
+    -   [0] *other*
+
+    ```{r}
+    table(data$time_signature)
+    ```
 
 For Hypothesis 1 we choose *mode* and for Hypothesis 2 we choose *time signature*.
 
-Then on every hypothesis, we should also check, if investigated data in hypothesis are normally distributed or not.
-This is crutial information before choosing right classification model for our hypothesis.
+Then on every hypothesis, we should also check, if investigated data in hypothesis are normally distributed or not. This is crutial information before choosing right classification model for our hypothesis.
 
 What are the differences between classification models?
 
-- Logistic Regression model
-    + assumes that relationship between predictors and the log odds of outcome is linear (but also can handle nonlinear relationships)
-    + may be sensitive to outliers
-- Linear Discriminant Analysis (LDA) model
-    + assumes that predicots are normally distributed in each class, making it robust to outliers
-    + finds linear combination of predictors, that best separates classes
+-   Logistic Regression model
+    -   assumes that relationship between predictors and the log odds of outcome is linear (but also can handle nonlinear relationships)
+    -   may be sensitive to outliers
+-   Linear Discriminant Analysis (LDA) model
+    -   assumes that predicots are normally distributed in each class, making it robust to outliers
+    -   finds linear combination of predictors, that best separates classes
 
 ### Hypothesis 1
 
@@ -178,6 +230,7 @@ head(class_data)
 ```
 
 We contstructed Hypothesis 1 based on information from colerration heatmap.
+
 ```{r}
 heatmap(cor(class_data),
         col = colorRampPalette(c("darkgreen", "white", "red"))(100),
@@ -187,12 +240,15 @@ heatmap(cor(class_data),
 #### Check data normal distribution
 
 First, we check, if data are normally distributed. We choose Anderson-Darling test for normality, because there are present tied values in data (it means that multiple rows have same value).
+
 ```{r}
 ad.test(class_data$danceability + class_data$energy)$p.value
 ```
-P-value < $\alpha = 0.05$. That means we reject $H_0$ of this test, which states, that data are normally distributed.
+
+P-value \< $\alpha = 0.05$. That means we reject $H_0$ of this test, which states, that data are normally distributed.
 
 We can also check it visually with histogram. On histogram we can also see, that data are not normally distributed.
+
 ```{r}
 hist(class_data$danceability + class_data$energy, col = "green")
 ```
@@ -202,6 +258,7 @@ According to this observations, we choose **Logistic Regression** model.
 #### Sampling
 
 Before creating glm model, we split data to train and test sample. It will helps as predict and test, how is model well trained.
+
 ```{r}
 sample <- sample(c(TRUE, FALSE), nrow(class_data), replace = TRUE, prob = c(0.7, 0.3))
 train_data <- class_data[sample, ]
@@ -211,6 +268,7 @@ test_data <- class_data[!sample, ]
 #### Model
 
 Now we can train classification model.
+
 ```{r}
 model_glm <- glm(mode ~ danceability + energy, data = train_data, family = binomial)
 summary(model_glm)
@@ -222,9 +280,11 @@ A Pearson residual close to zero indicates that observed response is close to pr
 ```{r}
 coef(model_glm)
 ```
+
 **Negative coefficients** suggest, that lower *danceability* and *energy* are associated with higher likelihood of being *major mode*.
 
 That coeficcient suggestion can be visually represented as in this plot.
+
 ```{r}
 plot(class_data$danceability + class_data$energy, class_data$mode, xlab = "Danceability + Energy", ylab = "Mode", pch = 19, col = ifelse(class_data$mode == 1, "green", "red"))
 abline(model_glm, col = "black", lwd = 2)
@@ -233,9 +293,8 @@ legend("topright", legend = c("Major Mode", "Minor Mode", "Logistic Regression L
 
 **Result of Hypothesis 1:** Hypothesis is rejected. Higher danceability and energy scores are associated with *minor mode*.
 
-Anyway, we have model, so we can predict model is trained with test data.
-But before that, we must choose cut-off (threshold of classification to major/minor).
-We can get optimal cut-off with help of **ROC curves**.
+Anyway, we have model, so we can predict model is trained with test data. But before that, we must choose cut-off (threshold of classification to major/minor). We can get optimal cut-off with help of **ROC curves**.
+
 ```{r}
 roc <- rocit(class = model_glm$y, score = model_glm$fitted.values)
 par(mfrow = c(1, 2))
@@ -246,6 +305,7 @@ summary(roc)
 ```
 
 Now we can get prediction classes with optimal cut-off and draw ROC curve.
+
 ```{r}
 predicted_classes <- predict(model_glm, newdata = test_data, type = "response")
 predicted_classes <- ifelse(predicted_classes > roc$AUC, 1, 0)
@@ -255,6 +315,7 @@ plot(roc_curve, col = "green", main = "ROC Curve")
 ```
 
 We can evaluate our model with **confusion matrix** and other metrics mentioned below.
+
 ```{r}
 confusion_matrix <- caret::confusionMatrix(as_factor(predicted_classes), as_factor(test_data$mode), positive = "1")
 ct <- confusion_matrix$table
@@ -274,41 +335,42 @@ ggplot(as.data.frame(ct), aes(x = Reference, y = Prediction, fill = Freq)) +
   labs(x = "Actual", y = "Predicted", title = "Confusion Matrix Heatmap")
 ```
 
-**Accuracy** indicates overall model performance.
-Higher accuracy suggests better predictive performance, but it may not provide complete picture, especially in imbalanced datasets.
+**Accuracy** indicates overall model performance. Higher accuracy suggests better predictive performance, but it may not provide complete picture, especially in imbalanced datasets.
+
 ```{r}
 print(paste("Accuracy: ", (TP + TN) / (P + N)))
 ```
-But in our case, dataset is balanced, because *major* and *minor mode* data are divided nearly 50/50.
-So our model is performing slightly better than random predictions.
+
+But in our case, dataset is balanced, because *major* and *minor mode* data are divided nearly 50/50. So our model is performing slightly better than random predictions.
+
 ```{r}
 print(paste("Proportion of major mode (1): ", P / (P + N)))
 print(paste("Proportion of minor mode (0): ", N / (P + N)))
 ```
 
-**Precision** measures ability of model to avoid FP.
-Higher precision indicates fewer FP, meaning fewer instances are incorrectly predicted as *major mode*.
+**Precision** measures ability of model to avoid FP. Higher precision indicates fewer FP, meaning fewer instances are incorrectly predicted as *major mode*.
+
 ```{r}
 precision <- TP / (FP + TP)
 print(paste("Precision: ", precision))
 ```
 
-**Recall** measures ability of model to capture all actual positives.
-Higher recall indicates that model captures higher proportion of actual *major mode* instances.
+**Recall** measures ability of model to capture all actual positives. Higher recall indicates that model captures higher proportion of actual *major mode* instances.
+
 ```{r}
 recall <- TP / P
 print(paste("Recall: ", recall))
 ```
 
-**F1-score** provides balanced measure between precision and recall.
-It is useful when there is an uneven class distribution.
+**F1-score** provides balanced measure between precision and recall. It is useful when there is an uneven class distribution.
+
 ```{r}
 f1_score <- 2 * (precision * recall) / (precision + recall)
 print(paste("F1 score: ", f1_score))
 ```
 
-**Specificity** measures how well model performs in correct identified instances of the negative class.
-High specificity indicates that model has low FP rate, meaning it effectively identifies TN without misclassifying them as positives.
+**Specificity** measures how well model performs in correct identified instances of the negative class. High specificity indicates that model has low FP rate, meaning it effectively identifies TN without misclassifying them as positives.
+
 ```{r}
 print(paste("Specificity: ", TN / (TN + FP)))
 ```
@@ -334,6 +396,7 @@ head(class_data)
 ```
 
 We contstructed Hypothesis 2 based on information from colerration heatmap.
+
 ```{r}
 heatmap(cor(class_data),
         col = colorRampPalette(c("darkgreen", "white", "red"))(100),
@@ -343,12 +406,15 @@ heatmap(cor(class_data),
 #### Check data normal distribution
 
 First, we check, if data are normally distributed. We choose Anderson-Darling test for normality.
+
 ```{r}
 ad.test(class_data$acousticness + class_data$instrumentalness)$p.value
 ```
-P-value < $\alpha = 0.05$. That means we reject $H_0$ of this test, which states, that data are normally distributed.
+
+P-value \< $\alpha = 0.05$. That means we reject $H_0$ of this test, which states, that data are normally distributed.
 
 We can also check it visually with histogram. On histogram we can also see, that data are not normally distributed.
+
 ```{r}
 hist(class_data$danceability + class_data$energy, col = "green")
 ```
@@ -358,6 +424,7 @@ According to this observations, we choose **Logistic Regression** model.
 #### Sampling
 
 Before creating glm model, we split data to train and test sample. It will helps as predict and test, how is model well trained.
+
 ```{r}
 sample <- sample(c(TRUE, FALSE), nrow(class_data), replace = TRUE, prob = c(0.7, 0.3))
 train_data <- class_data[sample, ]
@@ -367,6 +434,7 @@ test_data <- class_data[!sample, ]
 #### Model
 
 Now we can train classification model.
+
 ```{r}
 model_glm <- glm(time_signature ~ acousticness + instrumentalness, data = train_data, family = binomial)
 summary(model_glm)
@@ -378,9 +446,11 @@ A Pearson residual close to zero indicates that observed response is close to pr
 ```{r}
 coef(model_glm)
 ```
+
 **Negative coefficients** suggest, that lower *acousticness* and *instrumentalness* are associated with *4 beats time signature*.
 
 That coeficcient suggestion can be visually represented as in this plot.
+
 ```{r}
 plot(class_data$danceability + class_data$energy, class_data$mode, xlab = "Danceability + Energy", ylab = "Mode", pch = 19, col = ifelse(class_data$mode == 1, "green", "red"))
 abline(model_glm, col = "black", lwd = 2)
@@ -389,9 +459,8 @@ legend("topright", legend = c("Major Mode", "Minor Mode", "Logistic Regression L
 
 **Result of Hypothesis 1:** Hypothesis is accepted. Lower acousticness and instrumentalness scores are associated with *4 beats time signature*.
 
-Anyway, we have model, so we can predict model is trained with test data.
-But before that, we must choose cut-off (threshold of classification to 4 beats/other).
-We can try to get optimal cut-off with help of **ROC curves**.
+Anyway, we have model, so we can predict model is trained with test data. But before that, we must choose cut-off (threshold of classification to 4 beats/other). We can try to get optimal cut-off with help of **ROC curves**.
+
 ```{r}
 roc <- rocit(class = model_glm$y, score = model_glm$fitted.values)
 par(mfrow = c(1, 2))
@@ -401,10 +470,10 @@ par(mfrow = c(1, 1))
 summary(roc)
 ```
 
-After some testing, we figured out, that optimal cut-off from `roc$AUC` is not optimal.
-We tried some different values and cut-off = 0.9 was probably most optimal for our unbalanced classification.
+After some testing, we figured out, that optimal cut-off from `roc$AUC` is not optimal. We tried some different values and cut-off = 0.9 was probably most optimal for our unbalanced classification.
 
 Now we can get prediction classes with defined cut-off and draw ROC curve.
+
 ```{r}
 predicted_classes <- predict(model_glm, newdata = test_data, type = "response")
 predicted_classes <- ifelse(predicted_classes > 0.9, 1, 0)
@@ -414,6 +483,7 @@ plot(roc_curve, col = "green", main = "ROC Curve")
 ```
 
 We can evaluate our model with **confusion matrix** and other metrics mentioned below.
+
 ```{r}
 confusion_matrix <- caret::confusionMatrix(as_factor(predicted_classes), as_factor(test_data$time_signature), positive = "1")
 ct <- confusion_matrix$table
@@ -433,41 +503,42 @@ ggplot(as.data.frame(ct), aes(x = Reference, y = Prediction, fill = Freq)) +
   labs(x = "Actual", y = "Predicted", title = "Confusion Matrix Heatmap")
 ```
 
-**Accuracy** indicates overall model performance.
-Higher accuracy suggests better predictive performance, but it may not provide complete picture, especially in imbalanced datasets.
+**Accuracy** indicates overall model performance. Higher accuracy suggests better predictive performance, but it may not provide complete picture, especially in imbalanced datasets.
+
 ```{r}
 print(paste("Accuracy: ", (TP + TN) / (P + N)))
 ```
-Our dataset is very unbalanced, because *4 beats* and *other* time signatures are divided nearly 90/10.
-So we can't rely on this metrics.
+
+Our dataset is very unbalanced, because *4 beats* and *other* time signatures are divided nearly 90/10. So we can't rely on this metrics.
+
 ```{r}
 print(paste("Proportion of major mode (1): ", P / (P + N)))
 print(paste("Proportion of minor mode (0): ", N / (P + N)))
 ```
 
-**Precision** measures ability of model to avoid FP.
-Higher precision indicates fewer FP, meaning fewer instances are incorrectly predicted as *4 beats*.
+**Precision** measures ability of model to avoid FP. Higher precision indicates fewer FP, meaning fewer instances are incorrectly predicted as *4 beats*.
+
 ```{r}
 precision <- TP / (FP + TP)
 print(paste("Precision: ", precision))
 ```
 
-**Recall** measures ability of model to capture all actual positives.
-Higher recall indicates that model captures higher proportion of actual *4 beats* instances.
+**Recall** measures ability of model to capture all actual positives. Higher recall indicates that model captures higher proportion of actual *4 beats* instances.
+
 ```{r}
 recall <- TP / P
 print(paste("Recall: ", recall))
 ```
 
-**F1-score** provides balanced measure between precision and recall.
-It is useful when there is an uneven class distribution.
+**F1-score** provides balanced measure between precision and recall. It is useful when there is an uneven class distribution.
+
 ```{r}
 f1_score <- 2 * (precision * recall) / (precision + recall)
 print(paste("F1 score: ", f1_score))
 ```
 
-**Specificity** measures how well model performs in correct identified instances of the negative class.
-High specificity indicates that model has low FP rate, meaning it effectively identifies TN without misclassifying them as positives.
+**Specificity** measures how well model performs in correct identified instances of the negative class. High specificity indicates that model has low FP rate, meaning it effectively identifies TN without misclassifying them as positives.
+
 ```{r}
 print(paste("Specificity: ", TN / (TN + FP)))
 ```
