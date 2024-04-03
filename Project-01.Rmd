@@ -39,25 +39,23 @@ The dataset contains information about various "top" songs and their stats on Sp
 | weeks_on_chart   | Number of weeks the track was in the top 200 charts.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | streams          | How many streams the track had during its period in the charts.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
-
-
 ## Importing Libraries
 
-```{r}
+```{r message=FALSE}
 library(magrittr)
 library(tidyverse)
-
+library(dplyr) # mutate
+library(caret) # confusion matrix
+library(nortest) # Anderson-Darling test for normality
+library(ROCit) # rocit() - optimal cut-off
+library(pROC) # roc() - create ROC curve
 ```
 
 ## Loading the Dataset
 
 ```{r}
 data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
-
-```
-
-```{r}
-View(data)
+head(data)
 ```
 
 ## Data Exploration
@@ -104,8 +102,7 @@ However, there are still some pairs of features that might be worth exploring fu
 -   valence - energy
 -   valence - danceability
 
-
-## Models
+## Hypotheses
 
 Based on the results of our data exploration we've come up with several hypotheses which we will test using classification and regression models. 
 
@@ -123,17 +120,155 @@ Based on the results of our data exploration we've come up with several hypothes
 
 *Songs tend to have higher danceability when they exhibit lower levels of speechiness.*
 
-### Classification model
+## Classification model
 
 Classification - *mode*:
 
 -   1 - major
 -   0 - minor
 
-#### Hypothesis 1
+```{r}
+class_data <- data %>%
+  mutate(mode = ifelse(mode == "Major", 1, 0)) %>%
+  select(artist_names, track_name, key, mode, danceability, energy, liveness,
+         valence, weeks_on_chart, streams)
+head(class_data)
+```
+
+Before every hypothesis, we should check if investigated data in hypothesis are normally distributed or not. This is crutial information before choosing right classification model for our hypothesis.
+
+What are the differences between classification models?
+
+- Logistic Regression model
+    + assumes that relationship between predictors and the log odds of outcome is linear (but also can handle nonlinear relationships)
+    + may be sensitive to outliers
+- Linear Discriminant Analysis (LDA) model
+    + assumes that predicots are normally distributed in each class, making it robust to outliers
+    + finds linear combination of predictors, that best separates classes
+
+### Hypothesis 1
 
 *Songs classified as major mode are more likely to have higher danceability scores compared to songs classified as minor mode.*
 
-#### Hypothesis 2
+#### Check data normal distribution
+
+First, we check, if data are normally distributed. We choose Anderson-Darling test for normality, because there are present tied values in data (it means that multiple rows have same value).
+```{r}
+ad.test(class_data$danceability)$p.value
+```
+P-value < $\alpha = 0.05$. That means we reject $H_0$ of this test, which states, that data are normally distributed.
+
+We can also check it visually with histogram. On histogram we can also see, that data are not normally distributed.
+```{r}
+hist(class_data$danceability, col = "green")
+```
+According to this observations, we choose **Logistic Regression model**.
+
+#### Sampling
+
+Before creating glm model, we split data to train and test sample. It will helps as predict and test, how is model well trained.
+```{r}
+sample <- sample(c(TRUE, FALSE), nrow(class_data), replace = TRUE, prob = c(0.7, 0.3))
+train_data <- class_data[sample, ]
+test_data <- class_data[!sample, ]
+```
+Now we can train classification model.
+```{r}
+model_glm <- glm(mode ~ valence, data = train_data, family = binomial)
+plot(model_glm, which = 1)
+summary(model_glm)
+```
+TODO opisat summary a plot
+
+Plot: A Pearson residual close to zero indicates that the observed response is close to the predicted probability, suggesting a good fit between the model and the data.
+Positive Pearson residuals indicate that the observed response is higher than predicted, while negative Pearson residuals indicate that the observed response is lower than predicted.
+
+```{r}
+coef(model_glm)
+```
+**Negative coefficient** suggest, that lower danceability are associated with higher likelihood of being *major mode*.
+So if coefficient for *danceability* is -1.172, it implies that for every unit of *mode* it decreases in *danceability*.
+
+We can see this decrease in also in this plot.
+```{r}
+plot(class_data$danceability, class_data$mode, xlab = "Danceability", ylab = "Mode", pch = 19, col = ifelse(class_data$mode == 1, "green", "red"))
+abline(model_glm, col = "black", lwd = 2)
+legend("topright", legend = c("Major Mode", "Minor Mode", "Logistic Regression Line"), col = c("green", "red", "black"), pch = c(1, 1, NA), lwd = c(NA, NA, 2))
+```
+
+Now we have model, so we can predict how well trained is model with test data.
+But before that, we must choose cut-off (TODO co je cut-off??). We can get optimal cut-off with help of **ROC curves**.
+```{r}
+roc <- rocit(class = model_glm$y, score = model_glm$fitted.values)
+par(mfrow = c(1, 2))
+plot(roc)
+ksplot(roc)
+par(mfrow = c(1, 1))
+summary(roc)
+```
+
+Now we can get prediction classes with optimal cut-off and draw ROC curve to see TODO co??
+```{r}
+predicted_classes <- predict(model_glm, newdata = test_data, type = "response")
+predicted_classes <- ifelse(predicted_classes > 0.5663, 1, 0)
+
+roc_curve <- roc(test_data$mode, predicted_classes)
+plot(roc_curve, col = "green", main = "ROC Curve", legacy.axes = TRUE)
+```
+
+We can evaluate our model with **confusion matrix** and other metrics mentioned below.
+```{r}
+confusion_matrix <- caret::confusionMatrix(as_factor(predicted_classes), as_factor(test_data$mode), positive = "1")
+ct <- confusion_matrix$table
+
+TP <- ct[2, 2] # true positive
+FP <- ct[2, 1] # false positive
+TN <- ct[1, 1] # true negative
+FN <- ct[1, 2] # false negative
+P <- TP + FN # all positives
+N <- FP + TN # all negatives
+
+# confusion matrix heatmap
+ggplot(as.data.frame(ct), aes(x = Reference, y = Prediction, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), vjust = 1) +
+  scale_fill_gradient(low = "white", high = "green") +
+  labs(x = "Actual", y = "Predicted", title = "Confusion Matrix Heatmap")
+```
+**Accuracy** indicates overall model performance. A higher accuracy suggests better predictive performance, but it may not provide a complete picture, especially in imbalanced datasets.
+```{r}
+print(paste("Accuracy: ", (TP + TN) / (P + N)))
+```
+But in our case, dataset is balanced, because *major* and *minor mode* data are divided nearly 50/50.
+So our model is performing slightly better than random predictions.
+```{r}
+print(paste("Proportion of major mode (1): ", P / (P + N)))
+print(paste("Proportion of minor mode (0): ", N / (P + N)))
+```
+**Precision** measures the ability of the model to avoid false positives.
+A higher precision indicates fewer false positives, meaning fewer instances are incorrectly predicted as *major mode*.
+```{r}
+precision <- TP / (FP + TP)
+print(paste("Precision: ", precision))
+```
+**Recall** measures the ability of the model to capture all actual positives.
+A higher recall indicates that the model captures a higher proportion of actual *major mode* instances.
+```{r}
+recall <- TP / P
+print(paste("Recall: ", recall))
+```
+**F1-score** provides a balanced measure between precision and recall. It is useful when there is an uneven class distribution.
+```{r}
+f1_score <- 2 * (precision * recall) / (precision + recall)
+print(paste("F1 score: ", f1_score))
+```
+TODO
+```{r}
+specificity <- TN / (TN + FN)
+```
+
+### Hypothesis 2
 
 *Songs in the minor mode tend to have lower liveness scores.*
+
+TODO

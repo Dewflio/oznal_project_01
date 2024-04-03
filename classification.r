@@ -5,6 +5,7 @@
 
 library(magrittr)
 library(tidyverse)
+library(dplyr)
 library(caret)
 library(nortest) # Anderson-Darling test
 library(ROCit)
@@ -21,8 +22,8 @@ library(pROC) # pROC
 data <- read_csv("spotify_top_songs_audio_features.csv",
                  col_names = TRUE, num_threads = 4)
 # select data and hot-encode 'mode'
-data %<>%
-  mutate(mode = ifelse(mode == "Major", 1, 0)) %<>%
+data <- data %>%
+  mutate(mode = ifelse(mode == "Major", 1, 0)) %>%
   select(artist_names, track_name, key, mode, danceability, energy, liveness,
          valence, weeks_on_chart, streams)
 head(data)
