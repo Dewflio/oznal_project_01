@@ -122,20 +122,31 @@ Based on the results of our data exploration we've come up with several hypothes
 
 ## Classification model
 
-Classification - *mode*:
+We are considering 3 columns, that we could classify as 1 and 0. And those are:
 
--   1 - major
--   0 - minor
+- Key
+  + [1] A-C#/Db
+  + [0] D-G#/Ab
+  ```{r}
+  table(data$key)
+  ```
+- Mode
+  + [1] Major
+  + [0] Minor
+  ```{r}
+  table(data$mode)
+  ```
+- Time Signature
+  + [1] 4 beats
+  + [0] *other* 
+  ```{r}
+  table(data$time_signature)
+  ```
 
-```{r}
-class_data <- data %>%
-  mutate(mode = ifelse(mode == "Major", 1, 0)) %>%
-  select(artist_names, track_name, key, mode, danceability, energy, liveness,
-         valence, weeks_on_chart, streams)
-head(class_data)
-```
+For Hypothesis 1 we choose *mode* and for Hypothesis 2 we choose *time signature*.
 
-Before every hypothesis, we should check if investigated data in hypothesis are normally distributed or not. This is crutial information before choosing right classification model for our hypothesis.
+Then on every hypothesis, we should also check, if investigated data in hypothesis are normally distributed or not.
+This is crutial information before choosing right classification model for our hypothesis.
 
 What are the differences between classification models?
 
@@ -148,21 +159,45 @@ What are the differences between classification models?
 
 ### Hypothesis 1
 
-*Songs classified as major mode are more likely to have higher danceability scores compared to songs classified as minor mode.*
+*Songs classified as major mode (1) are more likely to have higher danceability and energy scores compared to songs classified as minor mode (0).*
+
+#### Data exploration
+
+For this hypothesis, we wanted balanced classification, so we chose *mode*.
+
+Classification - *mode*:
+
+-   [1] Major
+-   [0] Minor
+
+```{r}
+class_data <- data %>%
+  mutate(mode = ifelse(mode == "Major", 1, 0)) %>%
+  select_if(is.numeric)
+head(class_data)
+```
+
+We contstructed Hypothesis 1 based on information from colerration heatmap.
+```{r}
+heatmap(cor(class_data),
+        col = colorRampPalette(c("darkgreen", "white", "red"))(100),
+        symm = TRUE)
+```
 
 #### Check data normal distribution
 
 First, we check, if data are normally distributed. We choose Anderson-Darling test for normality, because there are present tied values in data (it means that multiple rows have same value).
 ```{r}
-ad.test(class_data$danceability)$p.value
+ad.test(class_data$danceability + class_data$energy)$p.value
 ```
 P-value < $\alpha = 0.05$. That means we reject $H_0$ of this test, which states, that data are normally distributed.
 
 We can also check it visually with histogram. On histogram we can also see, that data are not normally distributed.
 ```{r}
-hist(class_data$danceability, col = "green")
+hist(class_data$danceability + class_data$energy, col = "green")
 ```
-According to this observations, we choose **Logistic Regression model**.
+
+According to this observations, we choose **Logistic Regression** model.
 
 #### Sampling
 
@@ -174,30 +209,30 @@ test_data <- class_data[!sample, ]
 ```
 Now we can train classification model.
 ```{r}
-model_glm <- glm(mode ~ valence, data = train_data, family = binomial)
-plot(model_glm, which = 1)
+model_glm <- glm(mode ~ danceability + energy, data = train_data, family = binomial)
 summary(model_glm)
+plot(model_glm, which = 1)
 ```
-TODO opisat summary a plot
 
-Plot: A Pearson residual close to zero indicates that the observed response is close to the predicted probability, suggesting a good fit between the model and the data.
-Positive Pearson residuals indicate that the observed response is higher than predicted, while negative Pearson residuals indicate that the observed response is lower than predicted.
+A Pearson residual close to zero indicates that observed response is close to predicted probability, suggesting a good fit between model and data.
 
 ```{r}
 coef(model_glm)
 ```
-**Negative coefficient** suggest, that lower danceability are associated with higher likelihood of being *major mode*.
-So if coefficient for *danceability* is -1.172, it implies that for every unit of *mode* it decreases in *danceability*.
+**Negative coefficients** suggest, that lower *danceability* and *energy* are associated with higher likelihood of being *major mode*.
 
-We can see this decrease in also in this plot.
+That coeficcient suggestion can be visually represented as in this plot.
 ```{r}
-plot(class_data$danceability, class_data$mode, xlab = "Danceability", ylab = "Mode", pch = 19, col = ifelse(class_data$mode == 1, "green", "red"))
+plot(class_data$danceability + class_data$energy, class_data$mode, xlab = "Danceability + Energy", ylab = "Mode", pch = 19, col = ifelse(class_data$mode == 1, "green", "red"))
 abline(model_glm, col = "black", lwd = 2)
 legend("topright", legend = c("Major Mode", "Minor Mode", "Logistic Regression Line"), col = c("green", "red", "black"), pch = c(1, 1, NA), lwd = c(NA, NA, 2))
 ```
 
-Now we have model, so we can predict how well trained is model with test data.
-But before that, we must choose cut-off (TODO co je cut-off??). We can get optimal cut-off with help of **ROC curves**.
+**Result of hypothesis 1:** Hypothesis is rejected. Higher danceability and energy scores are associated with *minor mode*.
+
+Anyway, we have model, so we can predict model is trained with test data.
+But before that, we must choose cut-off (threshold of classification to major/minor).
+We can get optimal cut-off with help of **ROC curves**.
 ```{r}
 roc <- rocit(class = model_glm$y, score = model_glm$fitted.values)
 par(mfrow = c(1, 2))
@@ -207,13 +242,13 @@ par(mfrow = c(1, 1))
 summary(roc)
 ```
 
-Now we can get prediction classes with optimal cut-off and draw ROC curve to see TODO co??
+Now we can get prediction classes with optimal cut-off and draw ROC curve.
 ```{r}
 predicted_classes <- predict(model_glm, newdata = test_data, type = "response")
-predicted_classes <- ifelse(predicted_classes > 0.5663, 1, 0)
+predicted_classes <- ifelse(predicted_classes > roc$AUC, 1, 0)
 
 roc_curve <- roc(test_data$mode, predicted_classes)
-plot(roc_curve, col = "green", main = "ROC Curve", legacy.axes = TRUE)
+plot(roc_curve, col = "green", main = "ROC Curve")
 ```
 
 We can evaluate our model with **confusion matrix** and other metrics mentioned below.
@@ -225,8 +260,8 @@ TP <- ct[2, 2] # true positive
 FP <- ct[2, 1] # false positive
 TN <- ct[1, 1] # true negative
 FN <- ct[1, 2] # false negative
-P <- TP + FN # all positives
-N <- FP + TN # all negatives
+P <- TP + FN # all positives (1)
+N <- FP + TN # all negatives (0)
 
 # confusion matrix heatmap
 ggplot(as.data.frame(ct), aes(x = Reference, y = Prediction, fill = Freq)) +
@@ -235,7 +270,9 @@ ggplot(as.data.frame(ct), aes(x = Reference, y = Prediction, fill = Freq)) +
   scale_fill_gradient(low = "white", high = "green") +
   labs(x = "Actual", y = "Predicted", title = "Confusion Matrix Heatmap")
 ```
-**Accuracy** indicates overall model performance. A higher accuracy suggests better predictive performance, but it may not provide a complete picture, especially in imbalanced datasets.
+
+**Accuracy** indicates overall model performance.
+Higher accuracy suggests better predictive performance, but it may not provide complete picture, especially in imbalanced datasets.
 ```{r}
 print(paste("Accuracy: ", (TP + TN) / (P + N)))
 ```
@@ -245,26 +282,32 @@ So our model is performing slightly better than random predictions.
 print(paste("Proportion of major mode (1): ", P / (P + N)))
 print(paste("Proportion of minor mode (0): ", N / (P + N)))
 ```
-**Precision** measures the ability of the model to avoid false positives.
-A higher precision indicates fewer false positives, meaning fewer instances are incorrectly predicted as *major mode*.
+
+**Precision** measures ability of model to avoid false positives.
+Higher precision indicates fewer false positives, meaning fewer instances are incorrectly predicted as *major mode*.
 ```{r}
 precision <- TP / (FP + TP)
 print(paste("Precision: ", precision))
 ```
-**Recall** measures the ability of the model to capture all actual positives.
-A higher recall indicates that the model captures a higher proportion of actual *major mode* instances.
+
+**Recall** measures ability of model to capture all actual positives.
+Higher recall indicates that model captures higher proportion of actual *major mode* instances.
 ```{r}
 recall <- TP / P
 print(paste("Recall: ", recall))
 ```
-**F1-score** provides a balanced measure between precision and recall. It is useful when there is an uneven class distribution.
+
+**F1-score** provides balanced measure between precision and recall.
+It is useful when there is an uneven class distribution.
 ```{r}
 f1_score <- 2 * (precision * recall) / (precision + recall)
 print(paste("F1 score: ", f1_score))
 ```
-TODO
+
+**Specificity** provides insight into how well the model performs in identifying instances of the negative class correctly.
+A high specificity indicates that the model has a low FP rate, meaning it effectively identifies TN without misclassifying them as positives.
 ```{r}
-specificity <- TN / (TN + FN)
+print(paste("Specificity: ", TN / (TN + FP)))
 ```
 
 ### Hypothesis 2
