@@ -66,7 +66,7 @@ First we select the numeric features of the data set, so that we can perform cor
 ```{r}
 numeric_columns <- names(data)[sapply(data, is.numeric)]
 numeric_columns
-numeric_data <- data %>% select(numeric_columns)
+numeric_data <- data %>% dplyr::select(numeric_columns)
 ```
 
 ```{r}
@@ -541,8 +541,8 @@ print(paste("Accuracy: ", (TP + TN) / (P + N)))
 Our dataset is very unbalanced, because *4 beats* and *other* time signatures are divided nearly 90/10. So we can't rely on this metrics.
 
 ```{r}
-print(paste("Proportion of major mode (1): ", P / (P + N)))
-print(paste("Proportion of minor mode (0): ", N / (P + N)))
+print(paste("Proportion of 4 beats (1): ", P / (P + N)))
+print(paste("Proportion of others (0): ", N / (P + N)))
 ```
 
 **Precision** measures ability of model to avoid FP. Higher precision indicates fewer FP, meaning fewer instances are incorrectly predicted as *4 beats*.
