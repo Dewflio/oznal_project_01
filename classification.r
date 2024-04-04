@@ -176,3 +176,19 @@ f1_score <- 2 * (precision * recall) / (precision + recall)
 print(paste("F1 score: ", f1_score))
 
 print(paste("Specificity: ", TN / (TN + FP)))
+
+#'
+#'# FOR FUN
+#' Keys correlation
+#'
+
+class_data <- data %>%
+  mutate(key = ifelse(grepl("A|A#/B|B|C|C#/Db", key), 1, 0)) %>%
+  select_if(is.numeric)
+head(class_data)
+
+table(class_data$key)
+
+heatmap(cor(class_data),
+        col = colorRampPalette(c("darkgreen", "white", "red"))(100),
+        symm = TRUE)
