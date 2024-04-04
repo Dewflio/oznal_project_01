@@ -47,6 +47,10 @@ summary(model_h1)
 par(mfrow = c(1,3)) # par() sets up a plotting grid: 1 row x 3 columns
 plot(model_h1, which = c(1,2,5))
 
+bc <- boxcox(acousticness ~ 1, data = train_data)
+# Plot the profile log-likelihood
+plot(bc)
+
 
 
 hist(data$energy, col="green")

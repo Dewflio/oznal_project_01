@@ -49,6 +49,7 @@ library(caret) # confusion matrix
 library(nortest) # Anderson-Darling test for normality
 library(ROCit) # rocit() - optimal cut-off
 library(pROC) # roc() - create ROC curve
+library(MASS)
 ```
 
 ## Loading the Dataset
@@ -108,11 +109,21 @@ The relationship between energy and loudness can also be explored further. We ca
 
 #### Hypothesis 1
 
-Acousticness tends to decrease with higher danceability less significantly when energy and loudness are both high.
+H1: Acousticness tends to decrease with danceability.
+
+H0: There is no relationship between acousticness and danceability
 
 #### Hypothesis 2
 
-valence has less of an impact on energy then loudness.
+H1: Acousticness tends to decrease with loudness.
+
+H0: There is no relationship between acousticness and loudness
+
+#### Hypothesis 3
+
+H1: Energy tends to increase with valence.
+
+H0: There is no relationship between energy and valence
 
 ## Regression models
 
@@ -140,12 +151,22 @@ model_h1 <- train_data %>% glm(formula = acousticness ~ danceability + loudness 
 summary(model_h1)
 ```
 
+From the model summary we can see that there are two statistically significant pieces of information. And that is - the acousticness of the song tends to decrease with danceability (by about 0.71 per increase of 1) and it tends to decrease in energy by about 2,39 per increase of one.
+
+For Hypothesis 1 we can safely reject the null hypothesis, as we can clearly see that the results are statistically significant with a p value \< 0.05.
+
+For the second hypothesis (acousticness tends to decrease with loudness) we cannot come to the same conclusion - the p value is about 0.3 - much larger than 0.05, so we cannot safely assume that there is a statistical relationship between the two features.
+
+The following is a plot of the model residuals...
+
+We can see that the residuals vs. fitted graph does sort of form a funnel shape directed to the left, instead of the right. This suggests heteroscedasticity. Meaning that we might have inflated t-statistics for smaller fitted values. We might be able to remedy this by applying some transformations to the predicted variable - such as Box-Cox
+
 ```{r}
 par(mfrow = c(1,3)) # par() sets up a plotting grid: 1 row x 3 columns
 plot(model_h1, which = c(1,2,5))
 ```
 
-# TODO - interpret the model and H1
+# 
 
 ### 2nd Model
 
@@ -153,17 +174,25 @@ plot(model_h1, which = c(1,2,5))
 hist(data$energy, col="green")
 ```
 
+Here we can see a visually different kind of distribution - but it belongs to the same family as with the previous model - it is not a normal distribution, so we will be using GLM. and it is positively skewed and it resembles a Gamma distribution.
+
 ```{r}
 model_h2 <- train_data %>% glm(formula = energy ~ loudness + valence, family=Gamma(link="log"))
 summary(model_h2)
 ```
 
+From the model summary we can discern a few things - first the intercept is -0.03 which tells us about the predicted value of the energy when both loudness and valence are at zero - again not a realistic scenario. Second is that both predictors have a statistically significant relationship to the predicted variable - p values are less than 0.05.
+
+We can therefore safel reject the null hypothesis for Hypothesis 3 - energy tends to increase with valence. We can see that it tends to increase by about 0.19 with every step.
+
+We can also see that valance has a higher impact then loudness on the energy of the song.
+
+The following is a graph of the residuals summary from the model. We can see that the residuals are concentrated around a central value. The quantiles while not perfect look good. and that there are no residuals that would have too high of a leverage score.
+
 ```{r}
 par(mfrow = c(1,3)) 
 plot(model_h2, which = c(1,2,5))
 ```
-
-# TODO - interpret the model and H2
 
 ## Classification models
 
