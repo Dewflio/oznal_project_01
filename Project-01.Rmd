@@ -445,7 +445,7 @@ P-value \< $\alpha = 0.05$. That means we reject $H_0$ of this test, which state
 We can also check it visually with histogram. On histogram we can also see, that data are not normally distributed.
 
 ```{r}
-hist(class_data$danceability + class_data$energy, col = "green")
+hist(class_data$acousticness + class_data$instrumentalness, col = "green")
 ```
 
 According to this observations, we choose **Logistic Regression** model.
@@ -481,12 +481,12 @@ coef(model_glm)
 That coeficcient suggestion can be visually represented as in this plot.
 
 ```{r}
-plot(class_data$danceability + class_data$energy, class_data$mode, xlab = "Danceability + Energy", ylab = "Mode", pch = 19, col = ifelse(class_data$mode == 1, "green", "red"))
+plot(class_data$acousticness + class_data$instrumentalness, class_data$time_signature, xlab = "acousticness + instrumentalness", ylab = "time_signature", pch = 19, col = ifelse(class_data$time_signature == 1, "green", "red"))
 abline(model_glm, col = "black", lwd = 2)
-legend("topright", legend = c("Major Mode", "Minor Mode", "Logistic Regression Line"), col = c("green", "red", "black"), pch = c(1, 1, NA), lwd = c(NA, NA, 2))
+legend("topright", legend = c("4 beats", "other", "Logistic Regression Line"), col = c("green", "red", "black"), pch = c(1, 1, NA), lwd = c(NA, NA, 2))
 ```
 
-**Result of Hypothesis 1:** Hypothesis is accepted. Lower acousticness and instrumentalness scores are associated with *4 beats time signature*.
+**Result of Hypothesis 2:** Hypothesis is accepted. Lower acousticness and instrumentalness scores are associated with *4 beats time signature*.
 
 Anyway, we have model, so we can predict model is trained with test data. But before that, we must choose cut-off (threshold of classification to 4 beats/other). We can try to get optimal cut-off with help of **ROC curves**.
 
@@ -566,7 +566,7 @@ f1_score <- 2 * (precision * recall) / (precision + recall)
 print(paste("F1 score: ", f1_score))
 ```
 
-**Specificity** measures how well model performs in correct identified instances of the negative class. High specificity indicates that model has low FP rate, meaning it effectively identifies TN without misclassifying them as positives.
+**Specificity** measures how well model performs in correct identified instances of the negative class. High specificity indicates that model has low FP rate, meaning it effectively identifies TN without missclassifying them as positives.
 
 ```{r}
 print(paste("Specificity: ", TN / (TN + FP)))
