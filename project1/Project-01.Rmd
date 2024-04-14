@@ -55,7 +55,7 @@ library(MASS)
 ## Loading the Dataset
 
 ```{r}
-data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
+data <- read_csv("../spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
 head(data)
 ```
 
