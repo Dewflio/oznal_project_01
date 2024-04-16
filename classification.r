@@ -11,7 +11,7 @@ library(nortest) # Anderson-Darling test for normality
 library(ROCit) # rocit() - optimal cut-off
 library(pROC) # roc() - create ROC curve
 
-data <- read_csv("../spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
+data <- read_csv("spotify_top_songs_audio_features.csv", col_names = TRUE, num_threads = 4)
 head(data)
 
 # Counts of keys:
